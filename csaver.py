@@ -65,11 +65,11 @@ class Crawler:
         links = await self.extract_links_from_har()
         self.links = links
         if not links:
-            print(colored('No links found.' 'red', attrs=['bold']))
+            print(colored('No links found', 'red', attrs=['bold']))
             return
         auth_headers = await self.get_headers_and_cookies_from_har()
         if not auth_headers:
-            print(colored('No headers found.' 'red', attrs=['bold']))
+            print(colored('No headers found' 'red', attrs=['bold']))
             return   
         await self.make_request(auth_headers)
         await self.session.close()

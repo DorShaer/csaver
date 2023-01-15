@@ -4,8 +4,6 @@ from typing import Dict, List
 import aiohttp
 import argparse
 from termcolor import colored
-import chardet
-
 
 class Crawler:
     def __init__(self, base_url: str, interesting_paths: list[str], har_file: str):
@@ -16,7 +14,7 @@ class Crawler:
         self.auth_headers = {}
 
     async def get_headers_and_cookies_from_har(self) -> tuple[Dict[str, str], Dict[str, str]]:
-        with open(self.har_file, 'rb') as f:
+        with open(self.har_file, 'r') as f:
             har_data = json.load(f)
 
         headers = {}
@@ -32,11 +30,9 @@ class Crawler:
 
     async def extract_links_from_har(self):
         links = []
-        with open(self.har_file, 'rb') as f:
-            data = f.read()
-            encoding = chardet.detect(data)['encoding']
-            self.har_data = json.loads(data.decode(encoding))
-        for entry in self.har_data['log']['entries']:
+        with open(self.har_file, 'r') as f:
+            har_data = json.load(f)
+        for entry in har_data['log']['entries']:
             request = entry['request']
             if request['url'].startswith(self.base_url):
                 for interesting_path in self.interesting_paths:
@@ -44,7 +40,6 @@ class Crawler:
                         links.append(request['url'])
                         break
         return links
-
 
     async def process_link(self, link: str, headers: dict):
         #print(f'Making request to: {link}')
@@ -57,14 +52,14 @@ class Crawler:
                 print(colored(f'Protected resource found: {link}', 'green', attrs=['bold']))
                 # print(f'Headers: {headers}')
                 # print(f'Cookies: {resp_without_auth.cookies}')
-                
+
     async def make_request(self, headers: dict):
         tasks = []
         for link in self.links:
             tasks.append(asyncio.create_task(self.process_link(link, headers)))
         await asyncio.gather(*tasks)
 
-    
+
     async def run(self):
         self.session = aiohttp.ClientSession()
         links = await self.extract_links_from_har()
@@ -78,7 +73,7 @@ class Crawler:
             return   
         await self.make_request(auth_headers)
         await self.session.close()
-        
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True, 

@@ -32,26 +32,32 @@ class Crawler:
         links = []
         with open(self.har_file, 'r') as f:
             har_data = json.load(f)
-        for entry in har_data['log']['entries']:
-            request = entry['request']
-            if request['url'].startswith(self.base_url):
-                for interesting_path in self.interesting_paths:
-                    if interesting_path in request['url']:
-                        links.append(request['url'])
-                        break
+            domains = set()
+            for entry in har_data['log']['entries']:
+                request = entry['request']
+                domain = request['url'].split("//")[-1].split("/")[0]
+                domains.add(domain)
+            print(colored("\nDetected domains while parsing the file: ", 'blue', attrs=['bold']))
+            for domain in domains:
+                print(domain)
+            user_choice = input(colored("\nDo you want to include specific domains in the test? (y/n): ", 'yellow', attrs=['bold'])).lower()
+            if user_choice == 'y':
+                domains_to_test = input(colored("Which domains do you want to include in the test? (comma separated): ",'yellow', attrs=['bold'])).lower()
+                domains_to_test = domains_to_test.split(',')
+                for domain in domains_to_test:
+                    for entry in har_data['log']['entries']:
+                        request = entry['request']
+                        if domain in request['url']:
+                            links.append(request['url'])
+
+
         return links
 
     async def process_link(self, link: str, headers: dict):
         #print(f'Making request to: {link}')
         async with self.session.get(link, allow_redirects=False) as resp_without_auth:
-            # if resp_without_auth.status == 200:
-            #     print(f'Request to {link} returned {resp_without_auth.status}')
-            # else:
-            #     print(f'Request to {link} failed with status code: {resp_without_auth.status}')
             if resp_without_auth.status != 200:
-                print(colored(f'Protected resource found: {link}', 'green', attrs=['bold']))
-                # print(f'Headers: {headers}')
-                # print(f'Cookies: {resp_without_auth.cookies}')
+                print(colored('Protected resource found: ', 'green', attrs=['bold']) + colored(f'{link}', 'magenta', attrs=['bold']))
 
     async def make_request(self, headers: dict):
         tasks = []
@@ -65,11 +71,13 @@ class Crawler:
         links = await self.extract_links_from_har()
         self.links = links
         if not links:
-            print(colored('No links found.' 'red', attrs=['bold']))
+            print(colored('No links found, try to look for any subdomain or api endpoint.', 'red', attrs=['bold']))
+            await self.session.close()
             return
         auth_headers = await self.get_headers_and_cookies_from_har()
         if not auth_headers:
-            print(colored('No headers found.' 'red', attrs=['bold']))
+            print(colored('No headers found', 'red', attrs=['bold']))
+            await self.session.close()
             return   
         await self.make_request(auth_headers)
         await self.session.close()

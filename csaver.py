@@ -57,10 +57,13 @@ class Crawler:
             if resp_without_auth.status != 200:
                 response_text = await resp_without_auth.text()
                 response_headers = resp_without_auth.headers
+                status_code_when_unauthorized = resp_without_auth.status
                 print(colored('Protected resource found: ', 'green', attrs=['bold']) + colored(f'{method} {link}', 'magenta', attrs=['bold']))
                 print(colored('Original Request Headers: ', 'yellow', attrs=['bold']) + colored(f'{original_headers}', 'cyan', attrs=['bold']))
                 if method == 'POST' and post_data:
                     print(colored('Original POST data: ', 'yellow', attrs=['bold']) + colored(f'{post_data}', 'cyan', attrs=['bold']))
+                print(colored('Info: ', 'blue', attrs=['bold']) + f'Use status code {status_code_when_unauthorized} as the reauthentication trigger\n')
+
 
     async def make_request(self, auth_headers: dict):
         tasks = []
@@ -93,3 +96,4 @@ if __name__ == '__main__':
     har_file = args.har_file
     crawler = Crawler(interesting_paths, har_file)
     asyncio.run(crawler.run())
+

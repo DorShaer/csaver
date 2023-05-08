@@ -15,7 +15,7 @@ The `csaver` tool takes 2 arguments:
 
 1. `--har` - the location of the HAR file to extarct links from
 
-`python3 csaver --base-url https://brokencrystals.com/ --har brokencrystals.har`
+`python3 csaver --har brokencrystals.har`
 
 ```bash
 ❯ python3 csaver.py --base-url https://brokencrystals.com --har brokencrystals.har

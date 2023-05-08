@@ -13,8 +13,7 @@ csaver tool is designed to find a protected resouce when creating an authenticat
 
 The `csaver` tool takes 2 arguments:
 
-1. `--base-url` - the base URL so we can ingore out-of-scope links
-2. `--har` - the location of the HAR file to extarct links from
+1. `--har` - the location of the HAR file to extarct links from
 
 `python3 csaver --base-url https://brokencrystals.com/ --har brokencrystals.har`
 

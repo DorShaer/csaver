@@ -4,6 +4,7 @@ from typing import Dict, List
 import aiohttp
 import argparse
 from termcolor import colored
+from aiohttp.client_exceptions import ClientOSError
 
 class Crawler:
     def __init__(self, interesting_paths: list[str], har_file: str):
@@ -53,16 +54,19 @@ class Crawler:
 
         return links
     async def process_link(self, link: str, method: str, original_headers: dict, auth_headers: dict, post_data: str = None):
-        async with self.session.get(link, headers=auth_headers, allow_redirects=False) as resp_without_auth:
-            if resp_without_auth.status != 200:
-                response_text = await resp_without_auth.text()
-                response_headers = resp_without_auth.headers
-                status_code_when_unauthorized = resp_without_auth.status
-                print(colored('Protected resource found: ', 'green', attrs=['bold']) + colored(f'{method} {link}', 'magenta', attrs=['bold']))
-                print(colored('Original Request Headers: ', 'yellow', attrs=['bold']) + colored(f'{original_headers}', 'cyan', attrs=['bold']))
-                if method == 'POST' and post_data:
-                    print(colored('Original POST data: ', 'yellow', attrs=['bold']) + colored(f'{post_data}', 'cyan', attrs=['bold']))
-                print(colored('Info: ', 'blue', attrs=['bold']) + f'Use status code {status_code_when_unauthorized} as the reauthentication trigger\n')
+        try:
+            async with self.session.request(method, link, data=post_data, allow_redirects=False) as resp_without_auth:
+                if resp_without_auth.status != 200:
+                    response_text = await resp_without_auth.text()
+                    response_headers = resp_without_auth.headers
+                    status_code_when_unauthorized = resp_without_auth.status
+                    print(colored('Protected resource found: ', 'green', attrs=['bold']) + colored(f'{method} {link}', 'magenta', attrs=['bold']))
+                    print(colored('Original Request Headers: ', 'yellow', attrs=['bold']) + colored(f'{original_headers}', 'cyan', attrs=['bold']))
+                    if method == 'POST' and post_data:
+                        print(colored('Original POST data: ', 'yellow', attrs=['bold']) + colored(f'{post_data}', 'cyan', attrs=['bold']))
+                    print(colored('Info: ', 'blue', attrs=['bold']) + f'Use status code {status_code_when_unauthorized} as the reauthentication trigger\n')
+        except ClientOSError as e:
+            print(colored(f'Error while processing {method} {link}: {e}', 'red', attrs=['bold']))
 
 
     async def make_request(self, auth_headers: dict):
@@ -96,4 +100,3 @@ if __name__ == '__main__':
     har_file = args.har_file
     crawler = Crawler(interesting_paths, har_file)
     asyncio.run(crawler.run())
-
